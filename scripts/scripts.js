@@ -105,17 +105,28 @@ class Twitter {
   handlerModal({
     button,
     modal,
+    text,
     overlay,
+    submit,
     close,
   }) {
     const buttonElem = document.querySelector(button);
     const modalElem = document.querySelector(modal);
+    const textElem = document.querySelector(text);
     const overlayElem = document.querySelector(overlay);
+    const submitElem = document.querySelector(submit);
     const closeElem = document.querySelector(close);
 
+    //Ставим временный тест при открытии формы, если ранее пользователь передумал писать.
+    const tempString = textElem.innerHTML;
     const openModal = () => {
       modalElem.style.display = 'block';
+      if (textElem.innerHTML !== tempString) {
+        textElem.innerHTML = tempString;
+        submitElem.style.opacity = 0.5;
+      }
     }
+
     const closeModal = (elem, event) => {
       const target = event.target;
       if (target === elem) {
@@ -256,7 +267,9 @@ const twitter = new Twitter({
   modalElems: [{
     button: '.header__link_tweet',
     modal: '.modal',
+    text: '.modal .tweet-form__text',
     overlay: '.overlay',
+    submit: '.modal .tweet-form__btn',
     close: '.modal-close__btn',
   }],
   //Элементы твита
