@@ -19,7 +19,6 @@ class Twitter {
     listElem,
     modalElems,
     tweetElems,
-    tweetPageElems,
   }) {
     const fetchData = new FetchData();
     this.user = user;
@@ -28,7 +27,6 @@ class Twitter {
       listElem: document.querySelector(listElem),
       modal: modalElems,
       tweetElems,
-      tweetPageElems,
     };
 
     fetchData.getPost().then(data => {
@@ -38,7 +36,7 @@ class Twitter {
 
     this.elements.modal.forEach(this.handlerModal, this);
     this.elements.tweetElems.forEach(this.addTweet, this);
-    this.elements.tweetPageElems.forEach(this.addTweet, this);
+    //this.elements.tweetPageElems.forEach(this.addTweet, this);
   };
 
   //Выводим посты в вёрстку
@@ -118,7 +116,6 @@ class Twitter {
     const openModal = () => {
       modalElem.style.display = 'block';
     }
-
     const closeModal = (elem, event) => {
       const target = event.target;
       if (target === elem) {
@@ -137,13 +134,8 @@ class Twitter {
     }
 
     //Если открыто модальное окно, то закрываем его.
-    let modalOpen = modalElem.style.display;
-    if (modalOpen === 'block') {
-      this.handlerModal.closeModal = () => {
-        modalElem.style.display = 'none';
-      };
-    } else {
-      this.handlerModal.closeModal = () => {};
+    this.handlerModal.closeModal = () => {
+      modalElem.style.display = 'none';
     };
   };
 
@@ -267,16 +259,16 @@ const twitter = new Twitter({
     overlay: '.overlay',
     close: '.modal-close__btn',
   }],
-  //Элементы твита в модальном окне
+  //Элементы твита
   tweetElems: [{
-    text: '.modal .tweet-form__text',
-    img: '.modal .tweet-img__btn',
-    submit: '.modal .tweet-form__btn',
-  }],
-  //Элементы твита на странице
-  tweetPageElems: [{
-    text: '.tweet-form__text',
-    img: '.tweet-img__btn',
-    submit: '.tweet-form__btn',
-  }],
+      text: '.modal .tweet-form__text',
+      img: '.modal .tweet-img__btn',
+      submit: '.modal .tweet-form__btn',
+    },
+    {
+      text: '.wrapper .tweet-form__text',
+      img: '.wrapper .tweet-img__btn',
+      submit: '.wrapper .tweet-form__btn',
+    }
+  ],
 });
