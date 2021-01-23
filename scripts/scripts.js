@@ -19,15 +19,28 @@ class Twitter {
     listElem,
     modalElems,
     tweetElems,
+    classDeleteTweet,
+    classLikeTweet,
+    sortElem,
+    showUserPostElem,
+    showLikedPostElem,
   }) {
     const fetchData = new FetchData();
     this.user = user;
     this.tweets = new Posts();
     this.elements = {
       listElem: document.querySelector(listElem),
+      sortElem: document.querySelector(sortElem),
       modal: modalElems,
       tweetElems,
+      showUserPostElem: document.querySelector(showUserPostElem),
+      showLikedPostElem: document.querySelector(showLikedPostElem),
     };
+    this.class = {
+      classDeleteTweet,
+      classLikeTweet,
+    };
+    this.sortDate = true;
 
     fetchData.getPost().then(data => {
       data.forEach(this.tweets.addPost);
@@ -36,19 +49,26 @@ class Twitter {
 
     this.elements.modal.forEach(this.handlerModal, this);
     this.elements.tweetElems.forEach(this.addTweet, this);
-    //this.elements.tweetPageElems.forEach(this.addTweet, this);
+
+    //Отслеживание кликов пользователя
+    this.elements.listElem.addEventListener('click', this.handlerTweet);
+    this.elements.sortElem.addEventListener('click', this.changeSort);
+    this.elements.showLikedPostElem.addEventListener('click', this.showLikedPost)
+    this.elements.showUserPostElem.addEventListener('click', this.showUserPost)
   };
 
   //Выводим посты в вёрстку
   renderPosts(posts) {
     this.elements.listElem.textContent = '';
-    posts.forEach(({
+    const sortPost = posts.sort(this.sortFields());
+    sortPost.forEach(({
       id,
       userName,
       nickname,
       getDate,
       text,
       img,
+      liked,
       likes,
     }) => {
       this.elements.listElem.insertAdjacentHTML('beforeend', `
@@ -76,7 +96,7 @@ class Twitter {
               </div>
             </div>
             <footer>
-              <button class="tweet__like">
+              <button class="tweet__like ${liked ? this.class.classLikeTweet.active : ''}" data-id="${id}">
                 ${likes}
               </button>
             </footer>
@@ -87,12 +107,15 @@ class Twitter {
   };
 
   //Показываем посты пользователя
-  showUserPost() {
-
+  showUserPost = () => {
+    const post = this.tweets.posts.filter(item => item.nickname === this.user.nick);
+    this.renderPosts(post);
   };
 
   //Показываем лайки пользователя
-  showLikesPost() {
+  showLikedPost = () => {
+    const post = this.tweets.posts.filter(item => item.liked);
+    this.renderPosts(post);
 
   };
 
@@ -124,25 +147,25 @@ class Twitter {
       if (textElem.innerHTML !== tempString) {
         textElem.innerHTML = tempString;
         submitElem.style.opacity = 0.5;
-      }
-    }
+      };
+    };
 
     const closeModal = (elem, event) => {
       const target = event.target;
       if (target === elem) {
         modalElem.style.display = 'none';
-      }
-    }
+      };
+    };
 
     buttonElem.addEventListener('click', openModal);
 
     if (closeElem) {
       closeElem.addEventListener('click', closeModal.bind(null, closeElem));
-    }
+    };
 
     if (overlayElem) {
       overlayElem.addEventListener('click', closeModal.bind(null, overlayElem));
-    }
+    };
 
     //Если открыто модальное окно, то закрываем его.
     this.handlerModal.closeModal = () => {
@@ -175,20 +198,53 @@ class Twitter {
         this.handlerModal.closeModal();
         textElem.innerHTML = tempString;
         submitElem.style.opacity = 0.5;
-      }
+      };
     });
 
+    //Убираем временный текст
     textElem.addEventListener('click', () => {
       if (textElem.innerHTML === tempString) {
         textElem.innerHTML = '';
         submitElem.style.opacity = 1;
-      }
+      };
     });
 
     imgElem.addEventListener('click', () => {
       imgUrl = prompt('Введите адрес картинки: ');
     });
-  }
+  };
+
+  //Удаляем пост или ставим/убираем лайк
+  handlerTweet = event => {
+    const target = event.target;
+    if (target.classList.contains(this.class.classDeleteTweet)) {
+      this.tweets.deletePost(target.dataset.id);
+      this.showAllPost();
+    };
+    if (target.classList.contains(this.class.classLikeTweet.like)) {
+      this.tweets.likePost(target.dataset.id);
+      this.showAllPost();
+    };
+  };
+
+  //Сортировка по дате
+  changeSort = () => {
+    this.sortDate = !this.sortDate
+    this.showAllPost();
+  };
+
+  //Сортировка по лайкам/дате
+  sortFields() {
+    if (this.sortDate) {
+      return (a, b) => {
+        const dateA = new Date(a.postDate);
+        const dateB = new Date(b.postDate);
+        return dateB - dateA;
+      };
+    } else {
+      return (a, b) => b.likes - a.likes;
+    };
+  };
 };
 
 class Posts {
@@ -204,11 +260,14 @@ class Posts {
 
   //Удаляем пост
   deletePost(id) {
-
+    this.posts = this.posts.filter(item => item.id !== id)
   };
 
+  //Действие с лайками
   likePost(id) {
-
+    this.posts.forEach(item => {
+      if (item.id === id) item.changeLike();
+    });
   };
 };
 
@@ -225,7 +284,7 @@ class Post {
     this.id = id || this.generateID();
     this.userName = userName;
     this.nickname = nickname;
-    this.postDate = postDate ? new Date(postDate) : new Date;
+    this.postDate = postDate ? this.correctDate(postDate) : new Date;
     this.text = text;
     this.img = img;
     this.likes = likes;
@@ -253,9 +312,16 @@ class Post {
       hour: '2-digit',
       minute: '2-digit',
     };
-
     return this.postDate.toLocaleString('ru-RU', options);
   };
+
+  //Корректировка даты из текущей базы
+  correctDate(date) {
+    if (isNaN(Date.parse(date))) {
+      date = date.replace(/\./g, '/');
+    };
+    return new Date(date);
+  }
 };
 
 const twitter = new Twitter({
@@ -264,6 +330,7 @@ const twitter = new Twitter({
     name: 'Владимир',
     nick: 'rootdiv',
   },
+  //Модальное окно
   modalElems: [{
     button: '.header__link_tweet',
     modal: '.modal',
@@ -284,4 +351,15 @@ const twitter = new Twitter({
       submit: '.wrapper .tweet-form__btn',
     }
   ],
+  //Удаление поста и изменение лайков
+  classDeleteTweet: 'tweet__delete-button',
+  classLikeTweet: {
+    like: 'tweet__like',
+    active: 'tweet__like_active',
+  },
+  //Сортировка
+  sortElem: '.header__link_sort',
+  //Показ постов юзера и лайкнутых постов
+  showUserPostElem: '.header__link_profile',
+  showLikedPostElem: '.header__link_likes'
 });
